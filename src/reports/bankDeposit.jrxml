@@ -9,10 +9,6 @@
 	<import value="java.util.*"/>
 	<import value="net.sf.jasperreports.engine.data.*"/>
 	<parameter name="dataSource" class="org.openvpms.report.jasper.ObjectSetDataSource" isForPrompting="false"/>
-    <parameter name="IsEmail" class="java.lang.Boolean" isForPrompting="false">
-        <parameterDescription><![CDATA[If true, indicates the report is being emailed, to enable different formatting]]></parameterDescription>
-        <defaultValueExpression><![CDATA[Boolean.FALSE]]></defaultValueExpression>
-    </parameter>
 	<field name="bankDeposit.depositAccount.entity.name" class="java.lang.String"/>
 	<field name="bankDeposit.depositAccount.entity.description" class="java.lang.String"/>
 	<field name="bankDeposit.status" class="java.lang.String"/>
@@ -34,6 +30,7 @@
 	<field name="item.bsb" class="java.lang.String"/>
 	<field name="item.bank" class="java.lang.String"/>
 	<field name="item.creditCard" class="java.lang.String"/>
+	<field name="item.roundedAmount" class="java.math.BigDecimal"/>
 	<variable name="SHORTNAME" class="java.lang.String" resetType="None">
 		<variableExpression><![CDATA[$F{item.shortName}.replaceFirst(".*Payment|.*Refund", "")]]></variableExpression>
 	</variable>
@@ -74,7 +71,7 @@
 		<variableExpression><![CDATA[($V{IS_EFT}.booleanValue())? "" : null]]></variableExpression>
 	</variable>
 	<variable name="TOTAL_CASH" class="java.math.BigDecimal" calculation="Sum">
-		<variableExpression><![CDATA[($V{IS_CASH}.booleanValue())? $F{amount} : new BigDecimal("0.00")]]></variableExpression>
+		<variableExpression><![CDATA[$V{IS_CASH}.booleanValue()?($F{act.credit}.booleanValue()?$F{item.roundedAmount} : $F{item.roundedAmount}.negate()): new BigDecimal("0.00")]]></variableExpression>
 	</variable>
 	<group name="depositType" isStartNewPage="true" isReprintHeaderOnEachPage="true">
 		<groupExpression><![CDATA[$V{SHORTNAME}]]></groupExpression>
@@ -133,7 +130,7 @@
 			</band>
 		</groupHeader>
 		<groupFooter>
-			<band height="17" splitType="Stretch">
+			<band height="11" splitType="Stretch">
 				<printWhenExpression><![CDATA[$V{IS_NOT_CASH}]]></printWhenExpression>
 				<line>
 					<reportElement key="line-3" x="14" y="6" width="495" height="1"/>
