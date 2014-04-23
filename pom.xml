@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.openvpms</groupId>
         <artifactId>openvpms</artifactId>
-        <version>1.7.1-SNAPSHOT</version>
+        <version>1.8-SNAPSHOT</version>
         <relativePath>../openvpms/pom.xml</relativePath>
     </parent>
 
@@ -297,10 +297,10 @@
     </build>
 
     <properties>
-        <jdbc.admin.url>jdbc:mysql://localhost:3308/</jdbc.admin.url>
-        <jdbc.admin.db>openvpms</jdbc.admin.db>
-        <jdbc.admin.username>openvpms</jdbc.admin.username>
-        <jdbc.admin.password>openvpms</jdbc.admin.password>
+        <jdbc.admin.url>jdbc:mysql://localhost:3306/</jdbc.admin.url>
+        <jdbc.admin.db>openvpms-1.8</jdbc.admin.db>
+        <jdbc.admin.username>root</jdbc.admin.username>
+        <jdbc.admin.password>root</jdbc.admin.password>
     </properties>
 
 </project>
