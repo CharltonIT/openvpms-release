@@ -235,7 +235,7 @@
                         <echo message="Dumping database"/>
                         <!-- todo - need alternative dump for other databases -->
                         <mkdir dir="target/db"/>
-                        <exec executable="${pathtomysqldump}" output="target/db/db.sql" failOnError="true" logError="true">
+                        <exec executable="C:/Program Files/MySQL/MySQL Server 5.5.20/bin/mysqldump.exe" output="target/db/db.sql" failOnError="true" logError="true">
                             <arg line="${jdbc.admin.db} -P ${jbdc.admin.port} -u ${jdbc.admin.username} --password=${jdbc.admin.password}"/>
                         </exec>
                     </tasks>
@@ -297,7 +297,6 @@
     </build>
 
     <properties>
-        <pathtomysqldump>C:/Program Files/MySQL/MySQL Server 5.5.20/bin/mysqldump.exe</pathtomysqldump>
         <jdbc.admin.url>jdbc:mysql://localhost:3306/</jdbc.admin.url>
         <jbdc.admin.host>localhost</jbdc.admin.host>
         <jbdc.admin.port>3306</jbdc.admin.port>
@@ -305,5 +304,41 @@
         <jdbc.admin.username>root</jdbc.admin.username>
         <jdbc.admin.password></jdbc.admin.password>
     </properties>
-
+<profiles>
+    <profile>
+        <id>linux</id>
+        <activation>
+            <activeByDefault>false</activeByDefault>
+            <os>
+                <family>unix</family>
+            </os>
+        </activation>
+        <build>
+            <plugins>
+             <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.2</version>
+                    <configuration>
+                        <tasks>
+                            <echo message="Dumping database"/>
+                            <!-- todo - need alternative dump for other databases -->
+                            <mkdir dir="target/db"/>
+                            <exec executable="mysqldump" output="target/db/db.sql" failOnError="true" logError="true">
+                                <arg line="${jdbc.admin.db} -P ${jbdc.admin.port} -u ${jdbc.admin.username} --password=${jdbc.admin.password}"/>
+                            </exec>
+                        </tasks>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+             </plugin>
+            </plugins>
+        </build>
+    </profile>
+</profiles>
 </project>
