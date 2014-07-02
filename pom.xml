@@ -177,7 +177,7 @@
                 <!-- generate the database schema -->
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>hibernate3-maven-plugin</artifactId>
-                <version>3.0</version>
+                <version>2.2</version>
                 <configuration>
                     <componentProperties>
                         <jdk5>true</jdk5>
@@ -235,7 +235,7 @@
                         <echo message="Dumping database"/>
                         <!-- todo - need alternative dump for other databases -->
                         <mkdir dir="target/db"/>
-                        <exec executable="J:\wamp\bin\mysql\mysql5.5.24\bin\mysqldump.exe" output="target/db/db.sql" failOnError="true" logError="true">
+                        <exec executable="C:\Program Files\MySQL\MySQL Server 5.6\bin\mysqldump.exe" output="target/db/db.sql" failOnError="true" logError="true">
                             <arg line="${jdbc.admin.db} -P ${jbdc.admin.port} -u ${jdbc.admin.username} --password=${jdbc.admin.password}"/>
                         </exec>
                     </tasks>
@@ -301,8 +301,8 @@
         <jbdc.admin.host>localhost</jbdc.admin.host>
         <jbdc.admin.port>3306</jbdc.admin.port>
         <jdbc.admin.db>openvpms</jdbc.admin.db>
-        <jdbc.admin.username>root</jdbc.admin.username>
-        <jdbc.admin.password></jdbc.admin.password>
+        <jdbc.admin.username>openvpms</jdbc.admin.username>
+        <jdbc.admin.password>openvpms</jdbc.admin.password>
     </properties>
 <profiles>
     <profile>
