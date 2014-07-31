@@ -29,7 +29,7 @@
     <template name="Invoice"
               archetype="act.customerAccountChargesInvoice"
               reportType="CUSTOMER"
-              path="invoice a5.jrxml"
+              path="A5/Customer/Invoice/Invoice.jrxml"
               mimeType="text/xml"
               docType="document.other"
               description="Customer invoice - A5"/>
@@ -37,15 +37,23 @@
     <template name="Invoice Items"
               archetype="SUBREPORT"
               reportType="CUSTOMER"
-              path="invoiceitemsa5.jrxml"
+              path="A5/Customer/Invoice/Invoice Items.jrxml"
               mimeType="text/xml"
               docType="document.other"
               description="Customer invoice items - A5"/>
 
+    <template name="Invoice Notes"
+              archetype="SUBREPORT"
+              reportType="CUSTOMER"
+              path="A5/Customer/Invoice/Invoice Notes.jrxml"
+              mimeType="text/xml"
+              docType="document.other"
+              description="Customer invoice notes - A5"/>
+
     <template name="Invoice Reminders"
               archetype="SUBREPORT"
               reportType="CUSTOMER"
-              path="invoiceRemindersA5.jrxml"
+              path="A5/Customer/Invoice/Invoice Reminders.jrxml"
               mimeType="text/xml"
               docType="document.other"
               description="Customer invoice reminders - A5"/>
@@ -185,6 +193,14 @@
               mimeType="text/xml"
               docType="document.other"
               description="Lists patient clinical events"/>
+
+    <template name="Patient Clinical Problems"
+              archetype="act.patientClinicalProblem"
+              reportType="PATIENT"
+              path="Patient Clinical Problem A4.jrxml"
+              mimeType="text/xml"
+              docType="document.other"
+              description="Lists patient clinical problems"/>
 
     <template name="Patient Reminders Report"
               archetype="act.patientReminder"

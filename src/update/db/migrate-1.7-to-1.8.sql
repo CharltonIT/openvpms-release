@@ -34,6 +34,30 @@ CREATE TABLE IF NOT EXISTS `entity_link_details` (
   DEFAULT CHARSET =utf8;
 
 #
+# Add description column to node_descriptors for OBF-229
+#
+DELIMITER $$
+CREATE PROCEDURE alter_node_descriptors()
+  BEGIN
+    DECLARE _count INT;
+    SET _count = (SELECT
+                    COUNT(*)
+                  FROM INFORMATION_SCHEMA.COLUMNS
+                  WHERE TABLE_NAME = 'node_descriptors' AND
+                        COLUMN_NAME = 'description');
+    IF _count = 0
+    THEN
+      ALTER TABLE node_descriptors
+      ADD COLUMN description VARCHAR(255) DEFAULT NULL
+      AFTER name;
+    END IF;
+  END $$
+DELIMITER ;
+
+CALL alter_node_descriptors();
+DROP PROCEDURE alter_node_descriptors;
+
+#
 # Update party.organisationPractice for OVPMS-1472 Update to the Customer and Patient Summaries
 #
 INSERT INTO entity_details (entity_id, name, type, value)
@@ -49,6 +73,21 @@ INSERT INTO entity_details (entity_id, name, type, value)
                        FROM entity_details d
                        WHERE d.entity_id = e.entity_id AND d.name = "showCustomerAccountSummary");
 
+
+#
+# Migrate act.patientClinicalEvent, lookup.appointmentReason for OVPMS-1498
+#
+UPDATE acts
+SET title = reason
+WHERE arch_short_name = "act.patientClinicalEvent";
+
+UPDATE acts
+SET reason = null
+WHERE arch_short_name = "act.patientClinicalEvent" AND title = reason;
+
+UPDATE lookups
+SET arch_short_name = "lookup.visitReason"
+WHERE arch_short_name = "lookup.appointmentReason";
 
 #
 #

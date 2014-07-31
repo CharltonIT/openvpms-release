@@ -29,7 +29,7 @@
     <template name="Invoice"
               archetype="act.customerAccountChargesInvoice"
               reportType="CUSTOMER"
-              path="Invoice.jrxml"
+              path="Customer/Invoice/Invoice.jrxml"
               mimeType="text/xml"
               docType="document.other"
               description="Customer invoice - LETTER"/>
@@ -37,15 +37,23 @@
     <template name="Invoice Items"
               archetype="SUBREPORT"
               reportType="CUSTOMER"
-              path="Invoice Items.jrxml"
+              path="Customer/Invoice/Invoice Items.jrxml"
               mimeType="text/xml"
               docType="document.other"
               description="Customer invoice items - LETTER"/>
 
+    <template name="Invoice Notes"
+              archetype="SUBREPORT"
+              reportType="CUSTOMER"
+              path="Customer/Invoice/Invoice Notes.jrxml"
+              mimeType="text/xml"
+              docType="document.other"
+              description="Customer invoice notes - LETTER"/>
+
     <template name="Invoice Reminders"
               archetype="SUBREPORT"
               reportType="CUSTOMER"
-              path="Invoice Reminders.jrxml"
+              path="Customer/Invoice/Invoice Reminders.jrxml"
               mimeType="text/xml"
               docType="document.other"
               description="Customer invoice reminders - LETTER"/>
