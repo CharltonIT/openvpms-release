@@ -251,8 +251,8 @@
                         <echo message="Dumping database"/>
                         <!-- todo - need alternative dump for other databases -->
                         <mkdir dir="target/db"/>
-                        <exec executable="C:\Program Files\MySQL\MySQL Server 5.6\bin\mysqldump.exe" output="target/db/db.sql" failOnError="true" logError="true">
-                            <arg line="${build.jdbc.db} -u ${jdbc.admin.username} --password=${jdbc.admin.password}"/>
+                        <exec executable="${release.mysqldump.path}" output="target/db/db.sql" failOnError="true" logError="true">
+                            <arg line="${build.jdbc.db} -u ${jdbc.admin.username} -h ${build.jbdc.host} --password=${jdbc.admin.password}"/>
                         </exec>
                     </tasks>
                 </configuration>
@@ -312,10 +312,4 @@
             </resource>
         </resources>
     </build>
-
-    <properties>
-        <jdbc.admin.username>root</jdbc.admin.username>
-        <jdbc.admin.password>Password</jdbc.admin.password>
-    </properties>
-
 </project>
