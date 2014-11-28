@@ -2875,3 +2875,46 @@ INSERT INTO lookup_details (lookup_id, name, type, value)
                        FROM lookup_details d
                        WHERE d.lookup_id = l.lookup_id AND d.name = 'dataDictionaryId');
 DROP TABLE venom_presenting_complaint;
+
+#
+#  Modify Contacts.fax archetype to contact.phone for current users.for OVPMS-1172
+#
+
+# add the lookup.contactpurpose where it doesnt exist.
+
+insert into lookups (version, linkId, arch_short_name, active, arch_version,
+    code, name, description, default_lookup)
+select 0, UUID(), "lookup.contactPurpose", 1, "1.0", "FAX", "Fax", "Fax Contact Purpose", 0
+from dual
+where not exists (select * from lookups where arch_short_name = "lookup.contactPurpose" and code = "FAX");
+
+#  Add new purpose to existing fax
+
+insert into contact_classifications(contact_id, lookup_id)
+select contact_id, lookup_id
+from contacts c, lookups l
+where c.arch_short_name = "contact.faxNumber" and l.code = "FAX" and l.arch_short_name = "lookup.contactPurpose";
+
+
+# change the detail name to telephone
+
+update contacts c, contact_details d
+set d.name = "telephoneNumber"
+where c.arch_short_name = "contact.faxNumber" and c.contact_id = d.contact_id and d.name = "faxNumber";
+
+#  change the archetype for the entry
+
+update contacts
+set arch_short_name = "contact.phoneNumber"
+where arch_short_name = "contact.faxNumber";
+
+# remove contact.faxnumber archetype from the database.  We must reload archetypes for this patch.
+
+delete d
+from assertion_descriptors d, node_descriptors n, archetype_descriptors a
+where d.node_desc_id = n.node_desc_id and n.archetype_desc_id = a.archetype_desc_id
+      and a.name = "contact.faxNumber.1.0";
+
+delete a, n
+from node_descriptors n, archetype_descriptors a
+where n.archetype_desc_id = a.archetype_desc_id and a.name = "contact.faxNumber.1.0";
