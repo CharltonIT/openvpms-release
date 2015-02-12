@@ -87,6 +87,22 @@ INSERT INTO entity_details (entity_id, name, type, value)
                        FROM entity_details d
                        WHERE d.entity_id = e.entity_id AND d.name = "showCustomerAccountSummary");
 
+#
+# Update party.organisationPractice for OVPMS-1531 Screen auto lock
+#
+INSERT INTO entity_details (entity_id, name, type, value)
+  SELECT
+    DISTINCT e.entity_id,
+    "autoLockScreen",
+    "int",
+    "0"
+  FROM entities e
+  WHERE e.arch_short_name = "party.organisationPractice"
+        AND NOT exists(SELECT
+                         *
+                       FROM entity_details d
+                       WHERE d.entity_id = e.entity_id AND d.name = "autoLockScreen");
+
 
 #
 # Migrate act.patientClinicalEvent, lookup.appointmentReason for OVPMS-1498
@@ -2882,41 +2898,260 @@ DROP TABLE venom_presenting_complaint;
 
 # Add the FAX lookup.contactPurpose if it doesn't exist.
 
-insert into lookups (version, linkId, arch_short_name, active, arch_version,
-    code, name, description, default_lookup)
-select 0, UUID(), "lookup.contactPurpose", 1, "1.0", "FAX", "Fax", "Fax Contact Purpose", 0
-from dual
-where not exists (select * from lookups where arch_short_name = "lookup.contactPurpose" and code = "FAX");
+INSERT INTO lookups (version, linkId, arch_short_name, active, arch_version,
+                     code, name, description, default_lookup)
+  SELECT
+    0,
+    UUID(),
+    "lookup.contactPurpose",
+    1,
+    "1.0",
+    "FAX",
+    "Fax",
+    "Fax Contact Purpose",
+    0
+  FROM dual
+  WHERE NOT exists(SELECT
+                     *
+                   FROM lookups
+                   WHERE arch_short_name = "lookup.contactPurpose" AND code = "FAX");
 
 #  Add new purpose to existing fax
 
-insert into contact_classifications(contact_id, lookup_id)
-select contact_id, lookup_id
-from contacts c, lookups l
-where c.arch_short_name = "contact.faxNumber" and l.code = "FAX" and l.arch_short_name = "lookup.contactPurpose"
-  and not exists (select *
-                  from contact_classifications cl
-                  where cl.contact_id = c.contact_id and cl.lookup_id = l.lookup_id);
+INSERT INTO contact_classifications (contact_id, lookup_id)
+  SELECT
+    contact_id,
+    lookup_id
+  FROM contacts c, lookups l
+  WHERE c.arch_short_name = "contact.faxNumber" AND l.code = "FAX" AND l.arch_short_name = "lookup.contactPurpose"
+        AND NOT exists(SELECT
+                         *
+                       FROM contact_classifications cl
+                       WHERE cl.contact_id = c.contact_id AND cl.lookup_id = l.lookup_id);
 
 # Change the detail name to telephoneNumber
 
-update contacts c, contact_details d
-set d.name = "telephoneNumber"
-where c.arch_short_name = "contact.faxNumber" and c.contact_id = d.contact_id and d.name = "faxNumber";
+UPDATE contacts c, contact_details d
+SET d.name = "telephoneNumber"
+WHERE c.arch_short_name = "contact.faxNumber" AND c.contact_id = d.contact_id AND d.name = "faxNumber";
 
 # Change the contact archetype
 
-update contacts
-set arch_short_name = "contact.phoneNumber"
-where arch_short_name = "contact.faxNumber";
+UPDATE contacts
+SET arch_short_name = "contact.phoneNumber"
+WHERE arch_short_name = "contact.faxNumber";
 
 # Remove contact.faxNumber archetype from the database
 
-delete d
-from assertion_descriptors d, node_descriptors n, archetype_descriptors a
-where d.node_desc_id = n.node_desc_id and n.archetype_desc_id = a.archetype_desc_id
-      and a.name = "contact.faxNumber.1.0";
+DELETE d
+FROM assertion_descriptors d, node_descriptors n, archetype_descriptors a
+WHERE d.node_desc_id = n.node_desc_id AND n.archetype_desc_id = a.archetype_desc_id
+      AND a.name = "contact.faxNumber.1.0";
 
-delete a, n
-from node_descriptors n, archetype_descriptors a
-where n.archetype_desc_id = a.archetype_desc_id and a.name = "contact.faxNumber.1.0";
+DELETE a, n
+FROM node_descriptors n, archetype_descriptors a
+WHERE n.archetype_desc_id = a.archetype_desc_id AND a.name = "contact.faxNumber.1.0";
+
+#
+# Security authorities for OVPMS-1523 HL7 Pharmacy Orders
+#
+DROP TABLE IF EXISTS new_authorities;
+CREATE TABLE new_authorities (
+  name        VARCHAR(255) PRIMARY KEY,
+  description VARCHAR(255),
+  method      VARCHAR(255),
+  archetype   VARCHAR(255));
+
+INSERT INTO new_authorities (name, description, method, archetype)
+  VALUES ("Customer Orders Create", "Authority to Create Customer Orders", "create", "act.customerOrder*"),
+  ("Customer Orders Save", "Authority to Save Customer Orders", "save", "act.customerOrder*"),
+  ("Customer Orders Remove", "Authority to Remove Customer Orders", "remove", "act.customerOrder*"),
+  ("Customer Returns Create", "Authority to Create Customer Returns", "create", "act.customerReturn*"),
+  ("Customer Returns Save", "Authority to Save Customer Returns", "save", "act.customerReturn*"),
+  ("Customer Returns Remove", "Authority to Remove Customer Returns", "remove", "act.customerReturn*"),
+  ("HL7 Message Act Create", "Authority to Create HL7 Message Act", "create", "act.HL7Message"),
+  ("HL7 Message Act Save", "Authority to Save HL7 Message Act", "save", "act.HL7Message"),
+  ("HL7 Message Act Remove", "Authority to Remove HL7 Message Act", "remove", "act.HL7Message");
+
+INSERT INTO granted_authorities (version, linkId, arch_short_name, arch_version, name, description, active, service_name, method, archetype)
+  SELECT
+    0,
+    UUID(),
+    'security.archetypeAuthority',
+    "1.0",
+    a.name,
+    a.description,
+    1,
+    'archetypeService',
+    a.method,
+    a.archetype
+  FROM new_authorities a
+  WHERE NOT exists(
+      SELECT
+        *
+      FROM granted_authorities g
+      WHERE g.name = a.name);
+
+INSERT INTO roles_authorities (security_role_id, authority_id)
+  SELECT
+    r.security_role_id,
+    g.granted_authority_id
+  FROM security_roles r
+    JOIN granted_authorities g
+    JOIN new_authorities a
+      ON a.name = g.name
+  WHERE r.name = "Base Role" AND NOT exists
+  (SELECT
+     *
+   FROM roles_authorities x
+   WHERE x.security_role_id = r.security_role_id AND x.authority_id = g.granted_authority_id);
+
+DROP TABLE new_authorities;
+
+
+# Migration for OVPMS-1555 Add support for multiple To, CC, and BCC addresses when emailing
+
+# The following procedure is used to drop the foreign key from users -> entities.
+# Largely from http://stackoverflow.com/a/16717776
+DROP PROCEDURE IF EXISTS dropForeignKeysFromTable;
+
+DELIMITER $$
+CREATE PROCEDURE dropForeignKeysFromTable(IN param_table_schema VARCHAR(255), IN param_table_name VARCHAR(255))
+  BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE dropCommand VARCHAR(255);
+    DECLARE dropCur CURSOR FOR
+      SELECT
+        concat('ALTER TABLE ', table_schema, '.', table_name, ' DROP FOREIGN KEY ', constraint_name,
+               ', DROP KEY ', constraint_name, ';')
+      FROM information_schema.table_constraints
+      WHERE constraint_type = 'FOREIGN KEY'
+            AND table_name = param_table_name
+            AND table_schema = param_table_schema;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    OPEN dropCur;
+
+      read_loop: LOOP
+      FETCH dropCur
+      INTO dropCommand;
+    IF done
+    THEN
+      LEAVE read_loop;
+    END IF;
+
+    SET @sdropCommand = dropCommand;
+
+    PREPARE dropClientUpdateKeyStmt FROM @sdropCommand;
+
+      EXECUTE dropClientUpdateKeyStmt;
+
+      DEALLOCATE PREPARE dropClientUpdateKeyStmt;
+    END LOOP;
+
+    CLOSE dropCur;
+  END$$
+
+DELIMITER ;
+
+CALL dropForeignKeysFromTable(DATABASE(), 'users');
+
+DROP PROCEDURE IF EXISTS dropForeignKeysFromTable;
+
+INSERT INTO parties (party_id)
+  SELECT
+    entity_id
+  FROM entities
+  WHERE arch_short_name = "security.user"
+        AND NOT EXISTS(SELECT
+                         *
+                       FROM parties
+                       WHERE party_id = entity_id);
+
+ALTER TABLE users
+ADD KEY `FK6A68E0826A12449` (`user_id`),
+ADD CONSTRAINT `FK6A68E0826A12449` FOREIGN KEY (`user_id`) REFERENCES `parties` (`party_id`)
+  ON DELETE CASCADE;
+
+#
+# Replace entityRelationship.productIncludes with entityLink.productIncludes for OVPMS-1559 Nested product templates
+#
+
+INSERT INTO entity_links (version, linkId, arch_short_name, arch_version, name, description, active_start_time,
+                          active_end_time, sequence, source_id, target_id)
+  SELECT
+    version,
+    linkId,
+    "entityLink.productIncludes",
+    "1.0",
+    name,
+    description,
+    active_start_time,
+    active_end_time,
+    sequence,
+    source_id,
+    target_id
+  FROM entity_relationships r
+  WHERE r.arch_short_name = "entityRelationship.productIncludes"
+        AND NOT exists(
+      SELECT
+        *
+      FROM entity_links l
+      WHERE l.source_id = r.source_id
+            AND l.target_id = r.target_id
+            AND
+            (l.active_start_time = r.active_start_time OR (l.active_start_time IS null AND l.active_start_time IS null))
+            AND (l.active_end_time = r.active_end_time OR (l.active_end_time IS null AND l.active_end_time IS null))
+            AND l.arch_short_name = "entityLink.productIncludes");
+
+INSERT INTO entity_link_details (id, name, type, value)
+  SELECT
+    l.id,
+    "lowQuantity",
+    d.type,
+    d.value
+  FROM entity_relationships r
+    JOIN entity_relationship_details d
+      ON r.entity_relationship_id = d.entity_relationship_id
+         AND d.name = "includeQty"
+    JOIN entity_links l
+      ON l.arch_short_name = "entityLink.productIncludes"
+         AND l.source_id = r.source_id AND l.target_id = r.target_id
+         AND
+         (l.active_start_time = r.active_start_time OR (l.active_start_time IS null AND l.active_start_time IS null))
+         AND (l.active_end_time = r.active_end_time OR (l.active_end_time IS null AND l.active_end_time IS null))
+  WHERE r.arch_short_name = "entityRelationship.productIncludes"
+        AND NOT exists(
+      SELECT
+        *
+      FROM entity_link_details ld
+      WHERE ld.id = l.id);
+
+# Copy the lowQuantity to the highQuantity
+INSERT INTO entity_link_details (id, name, type, value)
+  SELECT
+    d.id,
+    "highQuantity",
+    d.type,
+    d.value
+  FROM entity_link_details d
+    JOIN entity_links l
+      ON l.arch_short_name = "entityLink.productIncludes"
+         AND d.id = l.id AND d.name = "lowQuantity"
+         AND NOT exists(
+        SELECT
+          *
+        FROM entity_link_details e
+        WHERE e.id = d.id AND e.name = "highQuantity");
+
+# Remove the old relationships
+DELETE d
+FROM entity_relationship_details d
+  JOIN entity_relationships r
+    ON d.entity_relationship_id = r.entity_relationship_id
+WHERE r.arch_short_name = "entityRelationship.productIncludes";
+
+DELETE r
+FROM entity_relationships r
+WHERE r.arch_short_name = "entityRelationship.productIncludes";
