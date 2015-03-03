@@ -43,7 +43,7 @@ CREATE PROCEDURE alter_node_descriptors()
     SET _count = (SELECT
                     COUNT(*)
                   FROM INFORMATION_SCHEMA.COLUMNS
-                  WHERE TABLE_NAME = 'node_descriptors' AND
+                  WHERE TABLE_NAME = 'node_descriptors' AND TABLE_SCHEMA = DATABASE() AND
                         COLUMN_NAME = 'description');
     IF _count = 0
     THEN
@@ -3022,7 +3022,7 @@ CREATE PROCEDURE dropForeignKeysFromTable(IN param_table_schema VARCHAR(255), IN
     DECLARE dropCommand VARCHAR(255);
     DECLARE dropCur CURSOR FOR
       SELECT
-        concat('ALTER TABLE ', table_schema, '.', table_name, ' DROP FOREIGN KEY ', constraint_name,
+        concat('ALTER TABLE `', table_schema, '`.', table_name, ' DROP FOREIGN KEY ', constraint_name,
                ', DROP KEY ', constraint_name, ';')
       FROM information_schema.table_constraints
       WHERE constraint_type = 'FOREIGN KEY'
@@ -3155,3 +3155,32 @@ WHERE r.arch_short_name = "entityRelationship.productIncludes";
 DELETE r
 FROM entity_relationships r
 WHERE r.arch_short_name = "entityRelationship.productIncludes";
+
+
+#
+# Copy discount to lowDiscount, rename discount to highDiscount for OVPMS-1564 Estimates: use separate discounts for
+# low and high totals
+#
+
+# Copy the discount to the lowDiscount
+INSERT INTO act_details (act_id, name, type, value)
+  SELECT
+    d.act_id,
+    "lowDiscount",
+    d.type,
+    d.value
+  FROM act_details d
+    JOIN acts a
+      ON a.arch_short_name = "act.customerEstimationItem"
+         AND d.act_id = a.act_id AND d.name = "discount"
+         AND NOT exists(
+        SELECT
+          *
+        FROM act_details e
+        WHERE e.act_id = d.act_id AND e.name = "lowDiscount");
+
+# rename discount to highDiscount
+UPDATE act_details d
+  JOIN acts a
+    ON a.arch_short_name = "act.customerEstimationItem" AND a.act_id = d.act_id AND d.name = "discount"
+SET d.name = "highDiscount";
